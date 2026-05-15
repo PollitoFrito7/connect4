@@ -1,0 +1,10 @@
+[package]
+name = "connect4"
+version = "0.1.0"
+edition = "2024"
+
+[profile.dev]
+debug = true
+
+[dependencies]
+colored = "3.1.1"
