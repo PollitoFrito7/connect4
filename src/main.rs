@@ -1,5 +1,6 @@
 use std::io;
 use std::fmt;
+use std::io::Write;
 use std::u16;
 use colored::Colorize;
 
@@ -80,10 +81,10 @@ impl Game {
         self.placed_chips == (WIDTH * HEIGHT) as u16
     }
 
-    fn insert_chip(&mut self, column: usize) {
+    fn insert_chip(&mut self, column: usize) -> bool {
         if column >= WIDTH {
             println!("NOT A VALID COLUMN FOR PLAY");
-            return
+            return false
         }
 
         match self.state {
@@ -97,13 +98,14 @@ impl Game {
                 
                 if lowest_empty > HEIGHT {
                     println!("COLUMN IS FULL");
-                    return;    
+                    return false    
                 }
                 
                 self.placed_chips += 1;
-                self.board[lowest_empty][column] = Some(chip)
+                self.board[lowest_empty][column] = Some(chip);
+                true
             },
-            _ => ()
+            _ => false
         }
     }
 
@@ -125,15 +127,17 @@ impl Game {
     }
 
     fn make_play(&mut self, column: usize) {
-        self.insert_chip(column);
-        self.next_state();
-        println!("{}", self.state);
+        if self.insert_chip(column) {
+            self.next_state();
+        }
     }
 
 }
 
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}", self.state)?;
+        writeln!(f, "------------------------")?;
         for i in 0..HEIGHT {
             write!(f, "{}|", HEIGHT - i)?;
 
@@ -166,11 +170,14 @@ impl fmt::Display for Game {
 
 fn main() {
     let mut game: Game = Game::new();
+    let mut column: String = String::new();
     
     while matches!(game.state, GameState::Playing(_)) {     
         game.show_game();
-        print!("Choose a column to place your chip");
-        let mut column: String = String::new();
+        column.clear();
+
+        print!("Choose a column to place your chip: ");
+        io::stdout().flush().expect("Failed to flush");
         io::stdin()
             .read_line(&mut column)
             .expect("Failed to read line.");
@@ -182,7 +189,7 @@ fn main() {
             Err(_) => continue,
         };
         
-        game.make_play(column - 1); // accepts machine view
+        game.make_play(column.wrapping_sub(1)); // accepts machine view
     }
 
     game.show_game();
