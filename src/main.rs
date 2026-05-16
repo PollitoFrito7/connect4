@@ -6,8 +6,11 @@ use colored::Colorize;
 const WIDTH: usize = 7;
 const HEIGHT: usize = 6;
 
-fn inbounds(row: usize, col: usize) -> bool {
-    row < HEIGHT && col < WIDTH
+fn inbounds(row: isize, col: isize) -> bool {
+    row >= 0
+        && row < HEIGHT as isize
+        && col >= 0
+        && col < WIDTH as isize
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -93,15 +96,19 @@ impl Game {
         let final_antidiagonal = 6;
 
         let GameState::Playing(chip) = self.state else {return false};
-        let mut row: usize;
-        let mut col: usize;
+        let mut row: isize;
+        let mut col: isize;
         let mut count: usize = 1;
         for mov in moves {
             for i in 1..=3 {
-                row = (mov.0*i + last_chip_height as isize) as usize;
-                col = (mov.1*i + column as isize) as usize;
+                row = mov.0*i + last_chip_height as isize;
+                col = mov.1*i + column as isize;
 
                 if !inbounds(row, col) {break;}
+
+                let row = row as usize;
+                let col = col as usize;
+
                 if self.board[row][col] != Some(chip) {break;}   
                 
                 count += 1;
