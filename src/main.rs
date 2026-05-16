@@ -6,6 +6,10 @@ use colored::Colorize;
 const WIDTH: usize = 7;
 const HEIGHT: usize = 6;
 
+fn inbounds(row: usize, col: usize) -> bool {
+    row < HEIGHT && col < WIDTH
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum Chip {
     Red,
@@ -43,7 +47,9 @@ impl fmt::Display for GameState {
         match self {
             Self::Playing(Chip::Red)    => write!(f, "Red player's turn"),
             Self::Playing(Chip::Yellow) => write!(f, "Yellow player's turn"),
-            _                           => write!(f, "GAME FINISHED!"),
+            Self::Won(Chip::Red)        => write!(f, "RED WON!"),
+            Self::Won(Chip::Yellow)     => write!(f, "YELLOW WON!"),
+            Self::Draw                  => write!(f, "IT'S A DRAW!"),
         }
     }
 }
@@ -73,120 +79,38 @@ impl Game {
     fn winning_line(&self, column: usize) -> bool {
         // 1. locate the last played chip
         let mut last_chip_height: usize = HEIGHT - 1;
-
         for i in 0..HEIGHT {
             if self.board[i][column].is_some() {
                 last_chip_height = i;
                 break;
             }          
         }
-        // 2. expand the chip in all directions until other color chip or line of 4
-        let mut line_counter: usize = 0;
-        let GameState::Playing(chip) = self.state else {
-            return false
-        };
 
-        for i in (last_chip_height)..HEIGHT {
-            if self.board[i][column] != Some(chip) {
-                break;
-            }
-            
-            line_counter += 1;
+        let moves: [(isize, isize); 7] = [(1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)];
+        let final_vertical = 0; 
+        let final_horizontal = 2;
+        let final_diagonal = 4;
+        let final_antidiagonal = 6;
 
-            if line_counter == 4 {
-                return true
-            }
-        }
+        let GameState::Playing(chip) = self.state else {return false};
+        let mut row: usize;
+        let mut col: usize;
+        let mut count: usize = 1;
+        for mov in moves {
+            for i in 1..=3 {
+                row = (mov.0*i + last_chip_height as isize) as usize;
+                col = (mov.1*i + column as isize) as usize;
 
-        line_counter = 0;
-        
-        for i in (0..(column)).rev() {
-            if self.board[last_chip_height][i] != Some(chip) {
-                break;
+                if !inbounds(row, col) {break;}
+                if self.board[row][col] != Some(chip) {break;}   
+                
+                count += 1;
+                if count == 4 {return true}
             }
 
-            line_counter += 1;
-
-            if line_counter == 4 {
-                return true
-            }
-        }
-
-        for i in (column + 1)..WIDTH {
-            if self.board[last_chip_height][i] != Some(chip) {
-                break;
-            }
-
-            line_counter += 1;
-
-            if line_counter == 4 {
-                return true
-            }
-        }
-
-        line_counter = 0;
-
-        for i in last_chip_height..HEIGHT {
-            if self.board[i][(column + i).wrapping_sub(last_chip_height)] != Some(chip) {
-                break;
-            }
-
-            line_counter += 1;
-            if line_counter == 4 {
-                return true
-            }
-            
-            if (column + i).wrapping_sub(last_chip_height) == WIDTH - 1 {
-                break;
-            }
-        }
- 
-        for i in (0..last_chip_height).rev() {
-            if column < last_chip_height.wrapping_sub(i) {
-                break;
-            }
-
-            if self.board[i][(column + i).wrapping_sub(last_chip_height)] != Some(chip) {
-                break;
-            }
-
-            line_counter += 1;
-            if line_counter == 4 {
-                return true
-            }
-
-        }
-
-        line_counter = 0;
-
-        for i in last_chip_height..HEIGHT {
-            if self.board[i][(column + last_chip_height).wrapping_sub(i)] != Some(chip) {
-                break;
-            }
-
-            line_counter += 1;
-            if line_counter == 4 {
-                return true
-            }
-            
-            if (column + last_chip_height).wrapping_sub(i) == 0 {
-                break;
-            }
-        }
- 
-        for i in (0..last_chip_height).rev() {
-            
-            if self.board[i][(column + last_chip_height).wrapping_sub(i)] != Some(chip) {
-                break;
-            }
-            
-            line_counter += 1;
-            if line_counter == 4 {
-                return true
-            }
-            
-            if (column + last_chip_height).wrapping_sub(i) == WIDTH - 1 {
-                break;
+            if mov == moves[final_horizontal] || mov == moves[final_vertical] 
+            || mov == moves[final_diagonal] || mov == moves[final_antidiagonal] {
+                    count = 1;
             }
         }
 
