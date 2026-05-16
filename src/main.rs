@@ -1,8 +1,10 @@
 use std::io;
 use std::fmt;
 use std::io::Write;
-use std::u16;
 use colored::Colorize;
+
+const WIDTH: usize = 7;
+const HEIGHT: usize = 6;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum Chip {
@@ -29,8 +31,8 @@ enum GameState {
 impl GameState {
     fn next_turn(&self) -> Self {
         match self {
-            GameState::Playing(Chip::Red) => GameState::Playing(Chip::Yellow),
-            GameState::Playing(Chip::Yellow) => GameState::Playing(Chip::Red),
+            GameState::Playing(Chip::Red)       => GameState::Playing(Chip::Yellow),
+            GameState::Playing(Chip::Yellow)    => GameState::Playing(Chip::Red),
             other => *other,
         }
     }
@@ -46,16 +48,11 @@ impl fmt::Display for GameState {
     }
 }
 
-
-
-const WIDTH: usize = 7;
-const HEIGHT: usize = 6;
-
 #[derive(Debug)]
 struct Game {
     board: [[Option<Chip>; WIDTH]; HEIGHT],
     state: GameState,
-    placed_chips: u16,
+    placed_chips: usize,
 }
 
 impl Game {
@@ -73,12 +70,69 @@ impl Game {
         println!();
     }
 
-    fn winning_line(&self) -> bool {
+    fn winning_line(&self, column: usize) -> bool {
+        // 1. locate the last played chip
+        let mut last_chip_height: usize = HEIGHT - 1;
+
+        for i in 0..HEIGHT {
+            if self.board[i][column].is_some() {
+                last_chip_height = i;
+                break;
+            }          
+        }
+        // 2. expand the chip in all directions until other color chip or line of 4
+        let mut line_counter: usize = 0;
+        let GameState::Playing(chip) = self.state else {
+            return false
+        };
+
+        for i in (last_chip_height)..HEIGHT {
+            if self.board[i][column] != Some(chip) {
+                break;
+            }
+            
+            line_counter += 1;
+
+            if line_counter == 4 {
+                return true
+            }
+        }
+
+        line_counter = 1;
+        
+        for i in (0..(column)).rev() {
+            if self.board[last_chip_height][i] != Some(chip) {
+                break;
+            }
+
+            line_counter += 1;
+
+            if line_counter == 4 {
+                return true
+            }
+        }
+
+        for i in (column + 1)..WIDTH {
+            if self.board[last_chip_height][i] != Some(chip) {
+                break;
+            }
+
+            line_counter += 1;
+
+            if line_counter == 4 {
+                return true
+            }
+        }
+
+        line_counter = 1;
+
+        //TODO: handle diagonals
+
         false
     }
 
     fn full_board(&self) -> bool {
-        self.placed_chips == (WIDTH * HEIGHT) as u16
+        self.placed_chips == WIDTH * HEIGHT
     }
 
     fn insert_chip(&mut self, column: usize) -> bool {
@@ -88,34 +142,29 @@ impl Game {
         }
 
         match self.state {
-            GameState::Playing(chip) =>  {
-                let mut lowest_empty = HEIGHT - 1;
-                
-                // first condition takes care of usize wrapping
-                while lowest_empty < HEIGHT && self.board[lowest_empty][column] != None {
-                    lowest_empty = lowest_empty.wrapping_sub(1);
+            GameState::Playing(chip) =>  {                
+                for i in (0..HEIGHT).rev() {
+                    if self.board[i][column].is_none() {
+                        self.placed_chips += 1;
+                        self.board[i][column] = Some(chip);
+                        return true
+                    }
                 }
                 
-                if lowest_empty > HEIGHT {
-                    println!("COLUMN IS FULL");
-                    return false    
-                }
-                
-                self.placed_chips += 1;
-                self.board[lowest_empty][column] = Some(chip);
-                true
+                println!("COLUMN IS FULL");
+                false    
             },
             _ => false
         }
     }
 
-    fn next_state(&mut self) {
+    fn next_state(&mut self, column: usize) {
         if self.full_board() {
             self.state = GameState::Draw;
             return;
         }
 
-        if self.winning_line() {
+        if self.winning_line(column) {
             self.state = match self.state {
                 GameState::Playing(chip) => GameState::Won(chip),
                 other => other,
@@ -128,7 +177,7 @@ impl Game {
 
     fn make_play(&mut self, column: usize) {
         if self.insert_chip(column) {
-            self.next_state();
+            self.next_state(column);
         }
     }
 
@@ -184,12 +233,16 @@ fn main() {
         println!();
 
         // human view
-        let column: usize = match column.trim().parse() {
+        let mut column: usize = match column.trim().parse() {
             Ok(i) => i,
             Err(_) => continue,
         };
+
+        if column != 0 {
+            column = column - 1;
+        }
         
-        game.make_play(column.wrapping_sub(1)); // accepts machine view
+        game.make_play(column); // accepts machine view
     }
 
     game.show_game();
