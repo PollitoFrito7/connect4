@@ -1,6 +1,6 @@
 # Connect 4
 
-This is a small repository with a simple project to practise as I follow along the Rust Programming Language book, esencially my first rust program apart from hello cargo.
+This is a small repository with a simple project to practise as I follow along the Rust Programming Language book, essentially my first rust program apart from hello cargo.
 As such, it makes use of some of Rust's particular features with the purpose of getting familiarized with syntax and praxis.
 
 The game itself is just a simple console line implementation of Connect 4, two people can play in the same machine.
