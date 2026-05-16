@@ -98,7 +98,7 @@ impl Game {
             }
         }
 
-        line_counter = 1;
+        line_counter = 0;
         
         for i in (0..(column)).rev() {
             if self.board[last_chip_height][i] != Some(chip) {
@@ -124,9 +124,71 @@ impl Game {
             }
         }
 
-        line_counter = 1;
+        line_counter = 0;
 
-        //TODO: handle diagonals
+        for i in last_chip_height..HEIGHT {
+            if self.board[i][(column + i).wrapping_sub(last_chip_height)] != Some(chip) {
+                break;
+            }
+
+            line_counter += 1;
+            if line_counter == 4 {
+                return true
+            }
+            
+            if (column + i).wrapping_sub(last_chip_height) == WIDTH - 1 {
+                break;
+            }
+        }
+ 
+        for i in (0..last_chip_height).rev() {
+            if column < last_chip_height.wrapping_sub(i) {
+                break;
+            }
+
+            if self.board[i][(column + i).wrapping_sub(last_chip_height)] != Some(chip) {
+                break;
+            }
+
+            line_counter += 1;
+            if line_counter == 4 {
+                return true
+            }
+
+        }
+
+        line_counter = 0;
+
+        for i in last_chip_height..HEIGHT {
+            if self.board[i][(column + last_chip_height).wrapping_sub(i)] != Some(chip) {
+                break;
+            }
+
+            line_counter += 1;
+            if line_counter == 4 {
+                return true
+            }
+            
+            if (column + last_chip_height).wrapping_sub(i) == 0 {
+                break;
+            }
+        }
+ 
+        for i in (0..last_chip_height).rev() {
+            
+            if self.board[i][(column + last_chip_height).wrapping_sub(i)] != Some(chip) {
+                break;
+            }
+            
+            line_counter += 1;
+            if line_counter == 4 {
+                return true
+            }
+            
+            if (column + last_chip_height).wrapping_sub(i) == WIDTH - 1 {
+                break;
+            }
+        }
 
         false
     }
